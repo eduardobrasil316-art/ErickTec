@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Configurações - Oficina</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-slot"></div>
+      <div class="nav-brand">Oficina - Gerenciador de OS</div>
+    </div>
+    <nav class="header-right">
+      <a href="index.html" class="btn">Voltar</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1>Configurações</h1>
+
+    <section class="card">
+      <h2>Identidade</h2>
+      <div class="form-row">
+        <label for="site-title">Título do site</label>
+        <input id="site-title" type="text" placeholder="Nome da oficina" />
+      </div>
+      <div class="form-row">
+        <button id="settings-upload" class="btn">Escolher logo</button>
+        <button id="settings-remove" class="btn btn-danger">Remover logo</button>
+        <button id="settings-save" class="btn btn-primary">Salvar</button>
+      </div>
+      <p class="muted">O título será exibido no cabeçalho da aplicação. O logo é salvo localmente no navegador.</p>
+    </section>
+
+    <section class="card">
+      <h2>Visualizar logo</h2>
+      <div class="logo-preview">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div class="logo-slot" id="logo-current-slot"></div>
+          <div>
+            <img id="logo-preview" style="max-width:240px;max-height:120px;border:1px solid #e5e7eb;padding:6px;border-radius:6px;display:none" alt="Pré-visualização" />
+            <div id="logo-controls" style="display:none;margin-top:8px">
+              <label for="logo-size-range">Tamanho máximo (px): <span id="logo-size-value">256</span></label>
+              <input id="logo-size-range" type="range" min="64" max="1024" value="256" />
+              <div style="margin-top:8px">
+                <label style="display:flex;align-items:center;gap:8px"><input id="logo-save-jpeg" type="checkbox"> Salvar como JPEG</label>
+                <div id="logo-quality-control" style="display:none;margin-top:6px">
+                  <label for="logo-quality-range">Qualidade JPEG: <span id="logo-quality-value">0.90</span></label>
+                  <input id="logo-quality-range" type="range" min="0.10" max="1.00" step="0.05" value="0.90" />
+                </div>
+              </div>
+            </div>
+            <div id="logo-reduced-msg" style="display:none;color:#b45309;margin-top:8px;font-size:0.95rem"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast-container"></div>
+  <script src="script.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', ()=>{
+      loadLogo();
+      loadSiteTitle();
+
+      const upload = document.getElementById('settings-upload');
+      const remove = document.getElementById('settings-remove');
+      const save = document.getElementById('settings-save');
+      const titleInput = document.getElementById('site-title');
+      const previewImg = document.getElementById('logo-preview');
+      const controls = document.getElementById('logo-controls');
+      const range = document.getElementById('logo-size-range');
+      const rangeVal = document.getElementById('logo-size-value');
+      const currentSlot = document.getElementById('logo-current-slot');
+
+      let originalData = null;
+      let pendingData = null;
+
+      // populate current title
+      titleInput.value = localStorage.getItem('os_site_title_v1') || '';
+
+      function showCurrentLogo(){
+        // copy the same content used by loadLogo into the small slot
+        currentSlot.innerHTML = '';
+        const data = localStorage.getItem('os_logo_v1');
+        if(data){ const img = document.createElement('img'); img.src = data; img.className = 'logo-img'; img.alt='Logo'; currentSlot.appendChild(img); }
+        else { const ph = document.createElement('div'); ph.className='logo-placeholder'; ph.textContent='Logo'; currentSlot.appendChild(ph); }
+      }
+      showCurrentLogo();
+
+      // helper: resize dataURL to maxWidth preserving aspect ratio
+      function resizeDataURL(dataURL, maxWidth, mime='image/png', quality=0.92){
+        return new Promise((resolve)=>{
+          const img = new Image(); img.onload = ()=>{
+            const scale = Math.min(1, maxWidth / img.width);
+            const w = Math.max(1, Math.round(img.width * scale));
+            const h = Math.max(1, Math.round(img.height * scale));
+            const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+            const out = canvas.toDataURL(mime, quality);
+            resolve(out);
+          };
+          img.src = dataURL;
+        });
+      }
+
+      // Pre-process large images: if file size > maxSizeMB or width > maxWidth, resize before preview
+        function preprocessImage(dataURL, file, options={maxWidth:800, maxSizeMB:2, jpegQuality:0.9}){
+          return new Promise((resolve)=>{
+            const img = new Image();
+            img.onload = ()=>{
+              const origW = img.width, origH = img.height;
+              const needBySize = file && file.size && (file.size > (options.maxSizeMB||2)*1024*1024);
+              const needByWidth = img.width > (options.maxWidth||800);
+              if(needBySize || needByWidth){
+                const target = Math.min(options.maxWidth||800, img.width);
+                const mime = (file && file.type && file.type.indexOf('jpeg')>=0) ? 'image/jpeg' : 'image/png';
+                const q = mime==='image/jpeg' ? (options.jpegQuality||0.9) : 0.92;
+                resizeDataURL(dataURL, target, mime, q).then(res=>{
+                  const newImg = new Image(); newImg.onload = ()=>{
+                    resolve({ data: res, resized: true, origWidth: origW, origHeight: origH, newWidth: newImg.width, newHeight: newImg.height, reason: needBySize ? 'size' : 'width' });
+                  };
+                  newImg.src = res;
+                });
+              } else { resolve({ data: dataURL, resized: false, origWidth: origW, origHeight: origH, newWidth: origW, newHeight: origH, reason: null }); }
+            };
+            img.src = dataURL;
+          });
+        }
+
+      function updatePreviewFromOriginal(maxW){
+        if(!originalData) return;
+        const useJpeg = document.getElementById('logo-save-jpeg').checked;
+        const quality = useJpeg ? parseFloat(document.getElementById('logo-quality-range').value) : 0.92;
+        const mime = useJpeg ? 'image/jpeg' : 'image/png';
+        resizeDataURL(originalData, parseInt(maxW||256,10), mime, quality).then(res=>{
+          pendingData = res; previewImg.src = res; previewImg.style.display = 'block'; controls.style.display = 'block';
+        });
+      }
+
+      // upload -> open file selector and load preview (does not save). Preprocess large images before showing.
+      upload.addEventListener('click', ()=>{
+        selectLogoFile((data, file)=>{
+          preprocessImage(data, file, {maxWidth:800, maxSizeMB:2, jpegQuality:0.9}).then(obj=>{
+            originalData = obj.data; // possibly resized
+            const reducedMsg = document.getElementById('logo-reduced-msg');
+            if(obj.resized){
+              reducedMsg.style.display = 'block';
+              reducedMsg.textContent = `Imagem reduzida automaticamente de ${obj.origWidth}×${obj.origHeight} para ${obj.newWidth}×${obj.newHeight}.`;
+              showToast('Imagem reduzida automaticamente', 'success');
+            } else { reducedMsg.style.display = 'none'; reducedMsg.textContent = ''; }
+            const tmpImg = new Image(); tmpImg.onload = ()=>{ const def = Math.min(512, tmpImg.width) || 256; range.value = def; rangeVal.textContent = def; updatePreviewFromOriginal(def); };
+            tmpImg.src = obj.data;
+          });
+        });
+      });
+
+      range.addEventListener('input', ()=>{ rangeVal.textContent = range.value; updatePreviewFromOriginal(range.value); });
+      const jpegCheckbox = document.getElementById('logo-save-jpeg');
+      const qualityRange = document.getElementById('logo-quality-range');
+      const qualityValue = document.getElementById('logo-quality-value');
+      const qualityControl = document.getElementById('logo-quality-control');
+      jpegCheckbox.addEventListener('change', ()=>{ qualityControl.style.display = jpegCheckbox.checked ? 'block' : 'none'; updatePreviewFromOriginal(range.value); });
+      qualityRange.addEventListener('input', ()=>{ qualityValue.textContent = qualityRange.value; updatePreviewFromOriginal(range.value); });
+
+      remove.addEventListener('click', ()=>{ removeLogo(); showToast('Logo removida', 'success'); showCurrentLogo(); previewImg.style.display='none'; controls.style.display='none'; originalData=null; pendingData=null; });
+
+      // salvar título ou logo (logo só se houver pendingData)
+      save.addEventListener('click', ()=>{
+        setSiteTitle(titleInput.value.trim() || 'Oficina - Gerenciador de OS');
+        if(pendingData){ saveLogoData(pendingData); pendingData = null; originalData = null; showCurrentLogo(); previewImg.style.display='none'; controls.style.display='none'; }
+        showToast('Configurações salvas', 'success');
+      });
+    });
+  </script>
+</body>
+</html>

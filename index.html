@@ -1,0 +1,176 @@
+﻿<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gerenciamento de Ordens de Serviço - Oficina</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 text-gray-900">
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-slot"></div>
+      <div class="nav-brand">Oficina - Gerenciador de OS</div>
+    </div>
+    <nav class="header-right">
+      <a href="products.html" class="btn">Produtos</a>
+      <a href="settings.html" class="btn">Configurações</a>
+    </nav>
+  </header>
+
+  <main class="max-w-6xl mx-auto p-4">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <!-- Left column: Cadastros (abas: Clientes / Veículos / Produtos) -->
+      <section class="col-span-1 bg-white rounded shadow p-4">
+        <h2 class="font-semibold text-lg mb-3">Cadastros</h2>
+
+        <div class="tabs">
+          <div class="flex gap-2 mb-3">
+            <button type="button" class="tab-button active" data-tab="clientes">Clientes</button>
+            <button type="button" class="tab-button" data-tab="veiculos">Veículos</button>
+          </div>
+
+          <div id="tab-clientes" class="tab-panel">
+            <h3 class="font-medium">Clientes</h3>
+            <form id="form-client" class="space-y-2 mt-2">
+              <input required name="nome" placeholder="Nome completo" class="w-full input" />
+              <input name="whatsapp" placeholder="WhatsApp" class="w-full input" />
+              <input name="cpf" placeholder="CPF" class="w-full input" />
+              <input name="endereco" placeholder="Endereço" class="w-full input" />
+              <div class="flex gap-2">
+                <button class="btn-primary" type="submit">Adicionar Cliente</button>
+                <button id="btn-clear-clients" type="button" class="btn-ghost">Limpar</button>
+              </div>
+            </form>
+            <ul id="clients-list" class="mt-3 text-sm space-y-1"></ul>
+          </div>
+
+          <div id="tab-veiculos" class="tab-panel hidden">
+            <h3 class="font-medium">Veículos</h3>
+            <form id="form-vehicle" class="space-y-2 mt-2">
+              <input required name="marca" placeholder="Marca" class="w-full input" />
+              <input name="modelo" placeholder="Modelo" class="w-full input" />
+              <input name="ano" placeholder="Ano" class="w-full input" />
+              <input name="placa" placeholder="Placa" class="w-full input" />
+              <input name="km" placeholder="KM" class="w-full input" />
+              <div class="flex gap-2">
+                <button class="btn-primary" type="submit">Adicionar Veículo</button>
+                <button id="btn-clear-vehicles" type="button" class="btn-ghost">Limpar</button>
+              </div>
+            </form>
+            <ul id="vehicles-list" class="mt-3 text-sm space-y-1"></ul>
+          </div>
+
+          <div id="tab-produtos" class="tab-panel hidden">
+            <h3 class="font-medium">Produtos (Estoque)</h3>
+            <form id="form-product" class="space-y-2 mt-2">
+              <input type="hidden" id="current-product-id" value="" />
+              <input required name="name" placeholder="Nome do produto" class="w-full input" />
+              <input name="sku" placeholder="SKU / Código" class="w-full input" />
+              <input name="price" type="number" step="0.01" min="0" placeholder="Preço unitário" class="w-full input" />
+              <input name="qty" type="number" min="0" placeholder="Quantidade em estoque" class="w-full input" />
+              <div class="flex gap-2">
+                <button class="btn-primary" type="submit">Adicionar Produto</button>
+                <button id="btn-clear-products" type="button" class="btn-ghost">Limpar</button>
+              </div>
+            </form>
+            <ul id="products-list" class="mt-3 text-sm space-y-1"></ul>
+          </div>
+            <!-- Produtos agora em página separada -->
+        </div>
+      </section>
+
+      <!-- Middle column: OS form -->
+      <section class="col-span-1 lg:col-span-2 bg-white rounded shadow p-4">
+        <h2 class="font-semibold text-lg mb-3">Nova Ordem de Serviço</h2>
+
+        <form id="form-os" class="space-y-4">
+          <input type="hidden" id="current-order-id" value="" />
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div>
+              <label class="block text-sm font-medium">Cliente</label>
+              <select id="select-client" class="w-full input"></select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium">Veículo</label>
+              <select id="select-vehicle" class="w-full input"></select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium">Status</label>
+            <select id="os-status" class="w-48 input">
+              <option>Aberto</option>
+              <option>Em Orçamento</option>
+              <option>Finalizado</option>
+              <option>Pago</option>
+            </select>
+          </div>
+
+          <div>
+            <h3 class="font-medium">Peças</h3>
+            <div class="overflow-x-auto mt-2">
+              <table class="min-w-full text-sm" id="parts-table">
+                <thead>
+                  <tr class="text-left text-gray-600">
+                    <th class="px-2">Nome da Peça</th>
+                    <th class="px-2 w-28">Qtd</th>
+                    <th class="px-2 w-36">Valor Unit.</th>
+                    <th class="px-2 w-36">Total</th>
+                    <th class="px-2 w-12">&nbsp;</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="mt-2">
+              <button id="btn-add-part" type="button" class="btn-primary">Adicionar Peça</button>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="font-medium">Mão de Obra</h3>
+            <textarea id="work-desc" placeholder="Descrição do serviço" class="w-full input h-24"></textarea>
+            <div class="mt-2 w-48">
+              <input id="work-value" type="number" min="0" step="0.01" placeholder="Valor da mão de obra" class="w-full input" />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between mt-4">
+            <div>
+              <button class="btn-primary" type="submit">Salvar Ordem</button>
+              <button id="btn-new-os" type="button" class="btn-ghost">Novo</button>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-gray-600">Total Peças: <span id="total-parts">0,00</span></div>
+              <div class="text-lg font-semibold">Total Geral: <span id="total-grand" class="text-[#0b2545]">0,00</span></div>
+            </div>
+          </div>
+        </form>
+
+        <hr class="my-4" />
+
+        <div class="flex items-center justify-between">
+          <h3 class="font-medium">Ordens Salvas</h3>
+          <div class="flex gap-2">
+            <input id="orders-search" placeholder="Buscar por placa ou cliente" class="input w-64" />
+            <select id="filter-status" class="input">
+              <option value="">Todos</option>
+              <option>Aberto</option>
+              <option>Em Orçamento</option>
+              <option>Finalizado</option>
+              <option>Pago</option>
+            </select>
+          </div>
+        </div>
+        <div id="orders-list" class="mt-3 space-y-2"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+  <div id="toast-container" class="fixed top-4 right-4 space-y-2 z-50"></div>
+</body>
+</html>
