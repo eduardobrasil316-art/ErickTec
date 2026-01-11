@@ -83,3 +83,33 @@
 }
 .tab-panel.hidden{ display:none }
 .tab-panel{ display:block }
+
+/* Mobile / small screens adjustments */
+@media (max-width: 640px){
+  :root{ --navy: #0b2545; }
+  body{ font-size: 15px; }
+  .header{ flex-direction: column; align-items: flex-start; gap: 0.5rem; padding: 0.75rem; }
+  .header-left{ gap:0.5rem }
+  .header-right{ width:100%; display:flex; gap:0.5rem; justify-content:space-between }
+  .nav-brand{ font-size:1rem; font-weight:600 }
+  .logo-slot{ width:44px; height:44px }
+
+  .container, main, .max-w-6xl{ padding-left:12px; padding-right:12px; }
+  .card{ padding:12px }
+  .input{ padding:0.5rem; font-size:0.95rem }
+  .btn-primary, .btn-ghost, .btn-white{ padding:0.6rem; font-size:0.98rem; }
+
+  /* Make form controls full width for easier tapping */
+  .form-row input, .form-row select, .input, select, textarea{ width:100%; box-sizing:border-box; }
+  .tabs .flex{ flex-wrap:wrap }
+  .tab-button{ flex: 1 1 48%; margin-bottom:6px }
+
+  /* Parts table scroll horizontally if needed */
+  #parts-table{ width:100%; overflow:auto; display:block }
+
+  /* Logo preview responsive */
+  .logo-preview img, .logo-img{ max-width:100%; height:auto }
+
+  /* Toast position slightly inset */
+  #toast-container{ right:8px; left:auto; top:8px }
+}
