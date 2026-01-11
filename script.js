@@ -460,6 +460,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // logo & site title
   loadLogo(); loadSiteTitle(); ensureLogoFileInput();
 
+  // service worker registration (progressive web app)
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').then(reg=> console.log('sw registered', reg.scope)).catch(err=> console.warn('sw err', err));
+  }
+
   if($('#btn-add-part')) $('#btn-add-part').addEventListener('click', ()=> addPartRow());
   if($('#work-value')) $('#work-value').addEventListener('input', updateTotals);
 

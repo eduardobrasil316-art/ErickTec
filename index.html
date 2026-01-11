@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b2545">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
   <title>Gerenciamento de Ordens de Serviço - Oficina</title>
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -172,5 +175,10 @@
 
   <script src="script.js"></script>
   <div id="toast-container" class="fixed top-4 right-4 space-y-2 z-50"></div>
+  <script>
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('sw.js').then(()=> console.log('ServiceWorker registrado')).catch(()=>{});
+    }
+  </script>
 </body>
 </html>
