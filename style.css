@@ -113,3 +113,26 @@
   /* Toast position slightly inset */
   #toast-container{ right:8px; left:auto; top:8px }
 }
+
+/* Styles when we explicitly detect a mobile device (via JS) */
+body.is-mobile{
+  -webkit-text-size-adjust: 100%;
+  -ms-touch-action: manipulation;
+  touch-action: manipulation;
+}
+
+/* Respect iOS safe-area insets when on mobile fullscreen or PWA */
+body.is-mobile, body.is-mobile main, body.is-mobile .header{
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.is-mobile .header{ padding-left: calc(12px + env(safe-area-inset-left)); padding-right: calc(12px + env(safe-area-inset-right)); }
+
+/* Slightly larger tap targets on mobile when detected */
+.is-mobile .btn-primary, .is-mobile .btn-ghost, .is-mobile .btn-white{ padding:0.75rem 0.9rem; font-size:1rem }
+
+/* Ensure inputs are easy to tap */
+.is-mobile .input{ padding:0.65rem; font-size:1rem }

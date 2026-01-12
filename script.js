@@ -381,6 +381,12 @@ function printOrder(id){
 
 /* Form handlers */
 document.addEventListener('DOMContentLoaded', ()=>{
+  // Mobile detection: add `is-mobile` class when running on phones/touch devices
+  try{
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod|Windows Phone|webOS|BlackBerry/i.test(navigator.userAgent) || (window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
+    if(isMobile) document.body.classList.add('is-mobile');
+  }catch(e){}
+
   if($('#clients-list') || $('#select-client')) renderClients();
   if($('#vehicles-list') || $('#select-vehicle')) renderVehicles();
   if($('#orders-list')) renderOrders();
