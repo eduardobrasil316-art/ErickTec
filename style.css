@@ -43,6 +43,9 @@
 .logo-placeholder{ color:var(--navy); font-weight:700; font-size:0.9rem }
 .logo-img{ max-width:100%; max-height:100%; display:block }
 
+/* Ensure images never overflow their containers */
+img, .logo-img { max-width: 100%; height: auto; display: block; }
+
 /* Dark mode removed - site uses single light theme */
 
 /* Impressão: layout limpo */
@@ -112,6 +115,39 @@
 
   /* Toast position slightly inset */
   #toast-container{ right:8px; left:auto; top:8px }
+}
+
+/* Tablet and small devices: stack layout vertically at <= 768px */
+@media (max-width: 768px){
+  /* Stack grid columns vertically */
+  .grid{ display:block; }
+  /* Ensure sections take full width and spacing */
+  main .grid > section, main .grid > div, main .grid > section, .card, section{ width:100%; box-sizing:border-box; margin-bottom:12px }
+  /* Header stacks */
+  .header{ flex-direction: column; align-items: flex-start; gap:0.5rem }
+  .header-right{ width:100%; display:flex; justify-content:space-between }
+  /* Make tables scroll horizontally if needed */
+  .overflow-x-auto, table, #parts-table{ width:100%; overflow:auto; display:block }
+  /* Images responsive */
+  img{ max-width:100%; height:auto }
+
+  /* Device-specific small tweaks */
+  @media (max-width: 414px){
+    body{ font-size:15px; }
+    .nav-brand{ font-size:0.98rem; }
+    .input{ padding:0.6rem; font-size:0.98rem }
+    .btn-primary, .btn-ghost, .btn-white{ padding:0.7rem; font-size:0.98rem }
+    .logo-slot{ width:40px; height:40px }
+    .tab-button{ padding:0.42rem 0.6rem }
+  }
+
+  @media (max-width: 375px){
+    body{ font-size:14px }
+    .nav-brand{ font-size:0.95rem }
+    .input{ padding:0.55rem; font-size:0.95rem }
+    .btn-primary, .btn-ghost, .btn-white{ padding:0.65rem; font-size:0.95rem }
+    .logo-slot{ width:36px; height:36px }
+  }
 }
 
 /* Styles when we explicitly detect a mobile device (via JS) */
