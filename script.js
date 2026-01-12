@@ -111,6 +111,7 @@ function renderClients(){
     if(!confirm('Excluir cliente?')) return;
     const arr = getData(STORAGE_KEYS.clients).filter(x=>x.id!==id);
     setData(STORAGE_KEYS.clients, arr); renderClients(); showToast('Cliente excluído', 'success');
+    if(window.Remote && Remote.delete) Remote.delete('clients', id);
   }));
   $all('.btn-edit-client').forEach(b=> b.addEventListener('click', e=>{
     const id = e.currentTarget.dataset.id;
@@ -176,6 +177,7 @@ function renderProducts(){
     const arr = getData(STORAGE_KEYS.products).filter(x=>x.id!==id);
     setData(STORAGE_KEYS.products, arr); renderProducts();
     showToast('Produto excluído', 'success');
+    if(window.Remote && Remote.delete) Remote.delete('products', id);
   }));
   $all('.btn-edit-product').forEach(b=> b.addEventListener('click', e=>{
     const id = e.currentTarget.dataset.id;
@@ -344,6 +346,7 @@ function renderOrders(){
     if(confirm('Remover essa ordem?')){
       const orders = getData(STORAGE_KEYS.orders).filter(x=>x.id!==id);
       setData(STORAGE_KEYS.orders, orders); renderOrders();
+      if(window.Remote && Remote.delete) Remote.delete('orders', id);
     }
   }));
   $all('.btn-edit').forEach(b=> b.addEventListener('click', e=> loadOrder(e.currentTarget.dataset.id)));
@@ -426,6 +429,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const isMobile = /Mobi|Android|iPhone|iPad|iPod|Windows Phone|webOS|BlackBerry/i.test(navigator.userAgent) || (window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
     if(isMobile) document.body.classList.add('is-mobile');
   }catch(e){}
+  if(window.Remote && window.Remote.syncDownload){
+    // try to sync remote -> local on load
+    Remote.syncDownload().then(()=>{ renderClients(); renderVehicles(); renderProducts(); renderOrders(); }).catch(()=>{});
+  }
 
   if($('#clients-list') || $('#select-client')) renderClients();
   if($('#vehicles-list') || $('#select-vehicle')) renderVehicles();
@@ -477,14 +484,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(!placa){ showToast('Preencha a placa do veículo', 'error'); f.placa.focus(); return; }
       const curId = $('#current-vehicle-id').value;
       if(curId){
-        let arr = getData(STORAGE_KEYS.vehicles).map(x=> x.id===curId ? { ...x, marca, modelo: f.modelo.value.trim(), ano: f.ano.value.trim(), placa, km: f.km.value.trim() } : x );
+        const updatedV = { id: curId, marca, modelo: f.modelo.value.trim(), ano: f.ano.value.trim(), placa, km: f.km.value.trim() };
+        let arr = getData(STORAGE_KEYS.vehicles).map(x=> x.id===curId ? updatedV : x );
         setData(STORAGE_KEYS.vehicles, arr);
         showToast('Veículo atualizado', 'success');
+        if(window.Remote && Remote.push) Remote.push('vehicles', updatedV);
       } else {
         const v = { id: uid(), marca, modelo: f.modelo.value.trim(), ano: f.ano.value.trim(), placa, km: f.km.value.trim() };
         const arr = getData(STORAGE_KEYS.vehicles); arr.push(v); setData(STORAGE_KEYS.vehicles, arr);
         const selV = $('#select-vehicle'); if(selV) selV.value = v.id;
         showToast('Veículo cadastrado', 'success');
+        if(window.Remote && Remote.push) Remote.push('vehicles', v);
       }
       f.reset(); $('#current-vehicle-id').value = '';
       renderVehicles();
@@ -500,8 +510,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const curId = $('#current-product-id').value;
       const p = { id: curId || uid(), name, sku: f.sku.value.trim(), price: parseFloat(f.price.value) || 0, qty: parseInt(f.qty.value) || 0 };
       let arr = getData(STORAGE_KEYS.products);
-      if(curId){ arr = arr.map(x=> x.id===curId ? p : x); showToast('Produto atualizado', 'success'); }
-      else { arr.push(p); showToast('Produto cadastrado', 'success'); }
+      if(curId){ arr = arr.map(x=> x.id===curId ? p : x); showToast('Produto atualizado', 'success'); if(window.Remote && Remote.push) Remote.push('products', p); }
+      else { arr.push(p); showToast('Produto cadastrado', 'success'); if(window.Remote && Remote.push) Remote.push('products', p); }
       setData(STORAGE_KEYS.products, arr); f.reset(); $('#current-product-id').value = ''; renderProducts();
     });
   }
@@ -569,18 +579,32 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // decrementar estoque
     let updatedProducts = products.slice();
+    const changedProductIds = new Set();
     for(const p of parts){
       let idx = -1;
       if(p.productId) idx = updatedProducts.findIndex(x=> x.id === p.productId);
       if(idx < 0 && p.sku) idx = updatedProducts.findIndex(x=> (x.sku||'').toLowerCase() === (p.sku||'').toLowerCase());
       if(idx < 0 && p.name) idx = updatedProducts.findIndex(x=> (x.name||'').toLowerCase() === (p.name||'').toLowerCase());
       if(idx >= 0){ updatedProducts[idx].qty = Math.max(0, (updatedProducts[idx].qty||0) - p.qty); }
+      if(idx >= 0) changedProductIds.add(updatedProducts[idx].id);
     }
     setData(STORAGE_KEYS.products, updatedProducts);
+
+    // push changed products to remote
+    if(window.Remote && Remote.push){
+      changedProductIds.forEach(id=>{
+        const prod = updatedProducts.find(x=> x.id===id);
+        if(prod) Remote.push('products', prod);
+      });
+    }
 
     const orders = getData(STORAGE_KEYS.orders).filter(o=>o.id!==idCurr);
     orders.push({ id: idCurr, clientId, vehicleId, status, laborDesc, laborValue, parts, createdAt: new Date().toISOString() });
     setData(STORAGE_KEYS.orders, orders);
+    if(window.Remote && Remote.push){
+      const savedOrder = orders.find(o=> o.id === idCurr);
+      if(savedOrder) Remote.push('orders', savedOrder);
+    }
     $('#current-order-id').value = '';
     $('#form-os').reset(); clearParts(); updateTotals(); renderOrders(); renderProducts();
     showToast('Ordem salva e estoque atualizado', 'success');
