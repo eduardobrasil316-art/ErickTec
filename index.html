@@ -35,9 +35,10 @@
             <button type="button" class="tab-button" data-tab="veiculos">Veículos</button>
           </div>
 
-          <div id="tab-clientes" class="tab-panel">
+            <div id="tab-clientes" class="tab-panel">
             <h3 class="font-medium">Clientes</h3>
             <form id="form-client" class="space-y-2 mt-2">
+              <input type="hidden" id="current-client-id" value="" />
               <input required name="nome" placeholder="Nome completo" class="w-full input" />
               <input name="whatsapp" placeholder="WhatsApp" class="w-full input" />
               <input name="cpf" placeholder="CPF" class="w-full input" />
@@ -53,6 +54,7 @@
           <div id="tab-veiculos" class="tab-panel hidden">
             <h3 class="font-medium">Veículos</h3>
             <form id="form-vehicle" class="space-y-2 mt-2">
+              <input type="hidden" id="current-vehicle-id" value="" />
               <input required name="marca" placeholder="Marca" class="w-full input" />
               <input name="modelo" placeholder="Modelo" class="w-full input" />
               <input name="ano" placeholder="Ano" class="w-full input" />

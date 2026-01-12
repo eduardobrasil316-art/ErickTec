@@ -95,10 +95,30 @@ function renderClients(){
   const sel = $('#select-client'); if(sel) sel.innerHTML = '<option value="">-- Selecione --</option>';
   clients.forEach(c=>{
     const li = document.createElement('li');
-    li.textContent = `${c.nome} • ${c.whatsapp || ''}`;
+    li.className = 'flex items-center justify-between';
+    li.innerHTML = `<div>${c.nome} • ${c.whatsapp || ''}</div>
+      <div class="flex gap-2">
+        <button class="btn-ghost btn-edit-client" data-id="${c.id}">Editar</button>
+        <button class="btn-ghost btn-del-client" data-id="${c.id}">Excluir</button>
+      </div>`;
     if(list) list.appendChild(li);
     if(sel){ const opt = document.createElement('option'); opt.value = c.id; opt.textContent = c.nome; sel.appendChild(opt); }
   });
+
+  // attach handlers
+  $all('.btn-del-client').forEach(b=> b.addEventListener('click', e=>{
+    const id = e.currentTarget.dataset.id;
+    if(!confirm('Excluir cliente?')) return;
+    const arr = getData(STORAGE_KEYS.clients).filter(x=>x.id!==id);
+    setData(STORAGE_KEYS.clients, arr); renderClients(); showToast('Cliente excluído', 'success');
+  }));
+  $all('.btn-edit-client').forEach(b=> b.addEventListener('click', e=>{
+    const id = e.currentTarget.dataset.id;
+    const c = getData(STORAGE_KEYS.clients).find(x=>x.id===id);
+    if(!c) return showToast('Cliente não encontrado', 'error');
+    const f = $('#form-client'); f.nome.value = c.nome; f.whatsapp.value = c.whatsapp || ''; f.cpf.value = c.cpf || ''; f.endereco.value = c.endereco || ''; $('#current-client-id').value = c.id;
+    const sel = $('#select-client'); if(sel) sel.value = c.id;
+  }));
 }
 
 /* Veículos */
@@ -108,10 +128,30 @@ function renderVehicles(){
   const sel = $('#select-vehicle'); if(sel) sel.innerHTML = '<option value="">-- Selecione --</option>';
   vehicles.forEach(v=>{
     const li = document.createElement('li');
-    li.textContent = `${v.marca} ${v.modelo} • ${v.placa || ''}`;
+    li.className = 'flex items-center justify-between';
+    li.innerHTML = `<div>${v.marca} ${v.modelo} • ${v.placa || ''}</div>
+      <div class="flex gap-2">
+        <button class="btn-ghost btn-edit-vehicle" data-id="${v.id}">Editar</button>
+        <button class="btn-ghost btn-del-vehicle" data-id="${v.id}">Excluir</button>
+      </div>`;
     if(list) list.appendChild(li);
     if(sel){ const opt = document.createElement('option'); opt.value = v.id; opt.textContent = `${v.marca} ${v.modelo} • ${v.placa}`; sel.appendChild(opt); }
   });
+
+  // attach handlers
+  $all('.btn-del-vehicle').forEach(b=> b.addEventListener('click', e=>{
+    const id = e.currentTarget.dataset.id;
+    if(!confirm('Excluir veículo?')) return;
+    const arr = getData(STORAGE_KEYS.vehicles).filter(x=>x.id!==id);
+    setData(STORAGE_KEYS.vehicles, arr); renderVehicles(); showToast('Veículo excluído', 'success');
+  }));
+  $all('.btn-edit-vehicle').forEach(b=> b.addEventListener('click', e=>{
+    const id = e.currentTarget.dataset.id;
+    const v = getData(STORAGE_KEYS.vehicles).find(x=>x.id===id);
+    if(!v) return showToast('Veículo não encontrado', 'error');
+    const f = $('#form-vehicle'); f.marca.value = v.marca || ''; f.modelo.value = v.modelo || ''; f.ano.value = v.ano || ''; f.placa.value = v.placa || ''; f.km.value = v.km || ''; $('#current-vehicle-id').value = v.id;
+    const sel = $('#select-vehicle'); if(sel) sel.value = v.id;
+  }));
 }
 
 /* Produtos (Estoque) */
@@ -409,11 +449,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const f = e.target;
     const nome = f.nome.value.trim();
     if(!nome){ showToast('Preencha o nome do cliente', 'error'); f.nome.focus(); return; }
-    const client = { id: uid(), nome, whatsapp: f.whatsapp.value.trim(), cpf: f.cpf.value.trim(), endereco: f.endereco.value.trim() };
-    const arr = getData(STORAGE_KEYS.clients); arr.push(client); setData(STORAGE_KEYS.clients, arr); f.reset(); renderClients();
-    // seleciona o cliente recém-criado para facilitar abrir a OS
-    const sel = $('#select-client'); if(sel) sel.value = client.id;
-    showToast('Cliente cadastrado', 'success');
+    const curId = $('#current-client-id').value;
+    if(curId){
+      // update
+      let arr = getData(STORAGE_KEYS.clients).map(x=> x.id===curId ? { ...x, nome, whatsapp: f.whatsapp.value.trim(), cpf: f.cpf.value.trim(), endereco: f.endereco.value.trim() } : x );
+      setData(STORAGE_KEYS.clients, arr);
+      showToast('Cliente atualizado', 'success');
+    } else {
+      const client = { id: uid(), nome, whatsapp: f.whatsapp.value.trim(), cpf: f.cpf.value.trim(), endereco: f.endereco.value.trim() };
+      const arr = getData(STORAGE_KEYS.clients); arr.push(client); setData(STORAGE_KEYS.clients, arr);
+      // seleciona o cliente recém-criado para facilitar abrir a OS
+      const sel = $('#select-client'); if(sel) sel.value = client.id;
+      showToast('Cliente cadastrado', 'success');
+    }
+    f.reset(); $('#current-client-id').value = '';
+    renderClients();
     });
   }
 
@@ -425,10 +475,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const placa = f.placa.value.trim();
       if(!marca){ showToast('Preencha a marca do veículo', 'error'); f.marca.focus(); return; }
       if(!placa){ showToast('Preencha a placa do veículo', 'error'); f.placa.focus(); return; }
-      const v = { id: uid(), marca, modelo: f.modelo.value.trim(), ano: f.ano.value.trim(), placa, km: f.km.value.trim() };
-      const arr = getData(STORAGE_KEYS.vehicles); arr.push(v); setData(STORAGE_KEYS.vehicles, arr); f.reset(); renderVehicles();
-      const selV = $('#select-vehicle'); if(selV) selV.value = v.id;
-      showToast('Veículo cadastrado', 'success');
+      const curId = $('#current-vehicle-id').value;
+      if(curId){
+        let arr = getData(STORAGE_KEYS.vehicles).map(x=> x.id===curId ? { ...x, marca, modelo: f.modelo.value.trim(), ano: f.ano.value.trim(), placa, km: f.km.value.trim() } : x );
+        setData(STORAGE_KEYS.vehicles, arr);
+        showToast('Veículo atualizado', 'success');
+      } else {
+        const v = { id: uid(), marca, modelo: f.modelo.value.trim(), ano: f.ano.value.trim(), placa, km: f.km.value.trim() };
+        const arr = getData(STORAGE_KEYS.vehicles); arr.push(v); setData(STORAGE_KEYS.vehicles, arr);
+        const selV = $('#select-vehicle'); if(selV) selV.value = v.id;
+        showToast('Veículo cadastrado', 'success');
+      }
+      f.reset(); $('#current-vehicle-id').value = '';
+      renderVehicles();
     });
   }
 
@@ -473,6 +532,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   if($('#btn-add-part')) $('#btn-add-part').addEventListener('click', ()=> addPartRow());
   if($('#work-value')) $('#work-value').addEventListener('input', updateTotals);
+
+  // Clear buttons for client/vehicle forms
+  if($('#btn-clear-clients')) $('#btn-clear-clients').addEventListener('click', ()=>{ const f = $('#form-client'); if(f){ f.reset(); $('#current-client-id').value=''; } });
+  if($('#btn-clear-vehicles')) $('#btn-clear-vehicles').addEventListener('click', ()=>{ const f = $('#form-vehicle'); if(f){ f.reset(); $('#current-vehicle-id').value=''; } });
 
   if($('#form-os')){
     $('#form-os').addEventListener('submit', e=>{
