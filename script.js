@@ -53,6 +53,40 @@ function loadSiteTitle(){
   document.querySelectorAll('.nav-brand').forEach(el=> el.textContent = t);
 }
 
+/* --- Auth UI & helpers (Firebase Auth) --- */
+function updateAuthUI(){
+  const area = document.getElementById('auth-area'); if(!area) return;
+  area.innerHTML = '';
+  if(typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser){
+    const u = firebase.auth().currentUser;
+    const span = document.createElement('span'); span.textContent = (u.email || u.uid);
+    const btn = document.createElement('button'); btn.className='btn-ghost'; btn.textContent='Sair'; btn.id='btn-logout';
+    btn.addEventListener('click', ()=>{ firebase.auth().signOut().then(()=> showToast('Desconectado', 'success')).catch(()=>{}); });
+    area.appendChild(span); area.appendChild(btn);
+  } else {
+    const login = document.createElement('button'); login.className='btn-ghost'; login.id='btn-login'; login.textContent='Entrar';
+    const reg = document.createElement('button'); reg.className='btn-ghost'; reg.id='btn-register'; reg.textContent='Cadastrar';
+    login.addEventListener('click', promptSignIn);
+    reg.addEventListener('click', promptSignUp);
+    area.appendChild(login); area.appendChild(reg);
+  }
+}
+
+function promptSignIn(){
+  const email = prompt('Email:'); if(!email) return;
+  const pass = prompt('Senha:'); if(!pass) return;
+  firebase.auth().signInWithEmailAndPassword(email, pass).then(()=>{ showToast('Bem-vindo', 'success'); if(window.Remote && Remote.syncDownload) Remote.syncDownload(); }).catch(err=> showToast(err.message || 'Erro login','error'));
+}
+
+function promptSignUp(){
+  const email = prompt('E-mail para cadastro:'); if(!email) return;
+  const pass = prompt('Senha (mín 6 caracteres):'); if(!pass) return;
+  firebase.auth().createUserWithEmailAndPassword(email, pass).then(()=>{ showToast('Conta criada', 'success'); if(window.Remote && Remote.syncDownload) Remote.syncDownload(); }).catch(err=> showToast(err.message || 'Erro cadastro','error'));
+}
+
+window.addEventListener('remote-auth-changed', ()=> updateAuthUI());
+
+
 // create hidden file input and attach change handler; does not bind to UI buttons
 function ensureLogoFileInput(){
   let input = document.getElementById('logo-file-input');
@@ -145,6 +179,7 @@ function renderVehicles(){
     if(!confirm('Excluir veículo?')) return;
     const arr = getData(STORAGE_KEYS.vehicles).filter(x=>x.id!==id);
     setData(STORAGE_KEYS.vehicles, arr); renderVehicles(); showToast('Veículo excluído', 'success');
+    if(window.Remote && Remote.delete) Remote.delete('vehicles', id);
   }));
   $all('.btn-edit-vehicle').forEach(b=> b.addEventListener('click', e=>{
     const id = e.currentTarget.dataset.id;
@@ -434,6 +469,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
     Remote.syncDownload().then(()=>{ renderClients(); renderVehicles(); renderProducts(); renderOrders(); }).catch(()=>{});
   }
 
+  // update auth UI on load
+  try{ updateAuthUI(); }catch(e){}
+
+  // when remote pushes updates via realtime listeners, re-render affected lists
+  window.addEventListener('remote-data-updated', (ev)=>{
+    const r = ev.detail && ev.detail.resource;
+    if(r === 'clients') renderClients();
+    if(r === 'vehicles') renderVehicles();
+    if(r === 'products') renderProducts();
+    if(r === 'orders') renderOrders();
+  });
+
   if($('#clients-list') || $('#select-client')) renderClients();
   if($('#vehicles-list') || $('#select-vehicle')) renderVehicles();
   if($('#orders-list')) renderOrders();
@@ -458,16 +505,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(!nome){ showToast('Preencha o nome do cliente', 'error'); f.nome.focus(); return; }
     const curId = $('#current-client-id').value;
     if(curId){
-      // update
-      let arr = getData(STORAGE_KEYS.clients).map(x=> x.id===curId ? { ...x, nome, whatsapp: f.whatsapp.value.trim(), cpf: f.cpf.value.trim(), endereco: f.endereco.value.trim() } : x );
+      const updatedClient = { id: curId, nome, whatsapp: f.whatsapp.value.trim(), cpf: f.cpf.value.trim(), endereco: f.endereco.value.trim() };
+      let arr = getData(STORAGE_KEYS.clients).map(x=> x.id===curId ? updatedClient : x );
       setData(STORAGE_KEYS.clients, arr);
       showToast('Cliente atualizado', 'success');
+      if(window.Remote && Remote.push) Remote.push('clients', updatedClient);
     } else {
       const client = { id: uid(), nome, whatsapp: f.whatsapp.value.trim(), cpf: f.cpf.value.trim(), endereco: f.endereco.value.trim() };
       const arr = getData(STORAGE_KEYS.clients); arr.push(client); setData(STORAGE_KEYS.clients, arr);
       // seleciona o cliente recém-criado para facilitar abrir a OS
       const sel = $('#select-client'); if(sel) sel.value = client.id;
       showToast('Cliente cadastrado', 'success');
+      if(window.Remote && Remote.push) Remote.push('clients', client);
     }
     f.reset(); $('#current-client-id').value = '';
     renderClients();

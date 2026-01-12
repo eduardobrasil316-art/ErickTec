@@ -20,6 +20,7 @@
     <nav class="header-right">
       <a href="products.html" class="btn">Produtos</a>
       <a href="settings.html" class="btn">Configurações</a>
+      <div id="auth-area" style="display:inline-flex;align-items:center;gap:8px;margin-left:8px"></div>
     </nav>
   </header>
 
@@ -175,9 +176,12 @@
     </div>
   </main>
 
+  <!-- Firebase SDK + optional user config + remote adapter -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="remote-firebase.js"></script>
   <script src="script.js"></script>
-  <script src="supabase-config.js"></script>
-  <script src="remote.js"></script>
   <div id="toast-container" class="fixed top-4 right-4 space-y-2 z-50"></div>
   <script>
     if('serviceWorker' in navigator){

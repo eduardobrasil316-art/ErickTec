@@ -17,6 +17,7 @@
     </div>
     <nav class="header-right">
       <a href="index.html" class="btn">Voltar</a>
+      <div id="auth-area" style="display:inline-flex;align-items:center;gap:8px;margin-left:8px"></div>
     </nav>
   </header>
 
@@ -63,9 +64,11 @@
   </main>
 
   <div id="toast-container"></div>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="remote-firebase.js"></script>
   <script src="script.js"></script>
-  <script src="supabase-config.js"></script>
-  <script src="remote.js"></script>
   <script>
     if('serviceWorker' in navigator){
       navigator.serviceWorker.register('sw.js').then(()=> console.log('ServiceWorker registrado')).catch(()=>{});
