@@ -673,3 +673,82 @@ document.addEventListener('DOMContentLoaded', ()=>{
 /* Inicializa com uma linha de peça vazia para usabilidade */
 // Inicializa com uma linha de peça vazia para usabilidade somente se existir a tabela
 if(document.querySelector('#parts-table')){ addPartRow(); updateTotals(); }
+
+/* --- Cadastro genérico (pessoas) usando localStorage --- */
+const CADASTRO_KEY = 'cadastros_v1';
+
+function getCadastros(){ return getData(CADASTRO_KEY); }
+function setCadastros(arr){ setData(CADASTRO_KEY, arr); }
+
+function renderCadastros(){
+  const list = $('#cadastros-list'); if(!list) return;
+  list.innerHTML = '';
+  const cad = getCadastros();
+  cad.forEach(c=>{
+    const li = document.createElement('li');
+    li.className = 'flex items-center justify-between';
+    li.innerHTML = `
+      <div>${c.nome} • ${c.email || ''} • ${c.telefone || ''}</div>
+      <div class="flex gap-2">
+        <button class="btn-ghost btn-edit-cad" data-id="${c.id}">Editar</button>
+        <button class="btn-ghost btn-del-cad" data-id="${c.id}">Excluir</button>
+      </div>`;
+    list.appendChild(li);
+  });
+
+  $all('.btn-del-cad').forEach(b=> b.addEventListener('click', e=>{
+    const id = e.currentTarget.dataset.id;
+    if(!confirm('Excluir cadastro?')) return;
+    const arr = getCadastros().filter(x=> x.id !== id);
+    setCadastros(arr); renderCadastros(); showToast('Cadastro excluído', 'success');
+    if(window.Remote && Remote.delete) Remote.delete('cadastros', id);
+  }));
+
+  $all('.btn-edit-cad').forEach(b=> b.addEventListener('click', e=>{
+    const id = e.currentTarget.dataset.id;
+    const c = getCadastros().find(x=> x.id === id);
+    if(!c) return showToast('Cadastro não encontrado','error');
+    const f = $('#form-cadastro'); if(!f) return;
+    $('#cad-nome').value = c.nome || '';
+    $('#cad-email').value = c.email || '';
+    $('#cad-telefone').value = c.telefone || '';
+    $('#current-cadastro-id').value = c.id;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }));
+}
+
+function saveCadastroObj(obj){
+  const arr = getCadastros();
+  if(obj.id){
+    const idx = arr.findIndex(x=> x.id === obj.id);
+    if(idx >= 0) arr[idx] = obj; else arr.push(obj);
+  } else {
+    obj.id = uid(); arr.push(obj);
+  }
+  setCadastros(arr);
+  renderCadastros();
+  showToast('Cadastro salvo', 'success');
+  if(window.Remote && Remote.push) Remote.push('cadastros', obj);
+}
+
+function initCadastros(){
+  const form = $('#form-cadastro'); if(!form) return;
+  renderCadastros();
+  if(window.Remote && Remote.syncDownload) Remote.syncDownload().then(()=> renderCadastros()).catch(()=>{});
+  form.addEventListener('submit', e=>{
+    e.preventDefault();
+    const nome = ($('#cad-nome').value || '').trim();
+    if(!nome) return showToast('Nome é obrigatório', 'error');
+    const email = ($('#cad-email').value || '').trim();
+    const telefone = ($('#cad-telefone').value || '').trim();
+    const id = $('#current-cadastro-id').value || '';
+    const obj = { id: id || undefined, nome, email, telefone };
+    saveCadastroObj(obj);
+    form.reset(); $('#current-cadastro-id').value = '';
+  });
+
+  const btnClear = $('#btn-clear-cadastro'); if(btnClear) btnClear.addEventListener('click', ()=>{ form.reset(); $('#current-cadastro-id').value = ''; });
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{ initCadastros(); });
+
